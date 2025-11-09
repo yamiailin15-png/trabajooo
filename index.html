@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR - Aldea + Dos Modelos</title>
+
+    <!-- Librerías -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      /* Overlay de escaneo */
+      #scan-overlay { position: absolute; top:0; left:0; right:0; bottom:0;
+        background: rgba(0,0,0,0.7); color: white; display: flex;
+        align-items:center; justify-content:center; }
+      #scan-overlay.hidden { display: none; }
+
+      /* Panel de botones */
+      #ui-panel {
+        position: fixed; bottom: 10px; left: 10px;
+        display: flex; flex-direction: column; gap: 6px;
+        z-index: 9999;
+      }
+      button {
+        padding: 6px 12px; background: rgba(0,0,0,0.5); color:white;
+        border: 1px solid white; border-radius: 6px; cursor:pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Overlay de escaneo -->
+    <div id="scan-overlay">Apunta tu cámara al marcador...</div>
+
+    <!-- Panel de control -->
+    <div id="ui-panel">
+      <button id="startBtn">Iniciar AR</button>
+      <button id="pauseBtn">Pausar AR</button>
+      <button id="resumeBtn">Reanudar AR</button>
+      <button id="changeLeftBtn">Cambiar Izquierda</button>
+      <button id="changeRightBtn">Cambiar Derecha</button>
+    </div>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: #scan-overlay"
+             color-space="sRGB"
+             renderer="colorManagement: true, physicallyCorrectLights"
+             vr-mode-ui="enabled: false"
+             device-orientation-permission-ui="enabled: false">
+
+      <a-assets>
+        <!-- Fondo -->
+        <img id="aldea" src="aldea.jpg">
+        <!-- Modelos -->
+        <a-asset-item id="naruto" src="naruto.glb"></a-asset-item>
+        <a-asset-item id="sasuke" src="sasuke.glb"></a-asset-item>
+        <a-asset-item id="sakura" src="sakura.glb"></a-asset-item>
+      </a-assets>
+
+      <a-camera look-controls="enabled: false"></a-camera>
+
+      <!-- Solo un target: en él ponemos fondo + dos personajes -->
+      <a-entity id="example-target" mindar-image-target="targetIndex: 0">
+        <a-plane src="#aldea" width="1.4" height="0.7" position="0 0 -0.08"></a-plane>
+
+        <!-- SLOT izquierdo -->
+        <a-entity id="slot1" gltf-model="#naruto" animation-mixer
+                  position="-0.3 -0.02 0.05" scale="0.4 0.4 0.4"></a-entity>
+
+        <!-- SLOT derecho -->
+        <a-entity id="slot2" gltf-model="#sasuke" animation-mixer
+                  position="0.3 -0.02 0.05" scale="0.4 0.4 0.4"></a-entity>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const sceneEl = document.querySelector('a-scene');
+        let arSystem;
+        sceneEl.addEventListener('loaded', function () {
+          arSystem = sceneEl.systems["mindar-image-system"];
+        });
+
+        const models = ['#naruto', '#sasuke', '#sakura'];
+        let leftIndex = 0;
+        let rightIndex = 1;
+
+        const slot1 = document.querySelector('#slot1');
+        const slot2 = document.querySelector('#slot2');
+
+        function changeModel(slot, index) {
+          slot.setAttribute('gltf-model', models[index]);
+        }
+
+        // Botones
+        document.querySelector('#startBtn').addEventListener('click', ()=> arSystem.start());
+        document.querySelector('#pauseBtn').addEventListener('click', ()=> arSystem.pause(true));
+        document.querySelector('#resumeBtn').addEventListener('click', ()=> arSystem.unpause());
+
+        document.querySelector('#changeLeftBtn').addEventListener('click', ()=>{
+          leftIndex = (leftIndex + 1) % models.length;
+          changeModel(slot1, leftIndex);
+        });
+        document.querySelector('#changeRightBtn').addEventListener('click', ()=>{
+          rightIndex = (rightIndex + 1) % models.length;
+          changeModel(slot2, rightIndex);
+        });
+
+        // Eventos de MindAR
+        const target = document.querySelector('#example-target');
+        target.addEventListener("targetFound", ()=> console.log("Target encontrado"));
+        target.addEventListener("targetLost", ()=> console.log("Target perdido"));
+      });
+    </script>
+  </body>
+</html>
